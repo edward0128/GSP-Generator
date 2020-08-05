@@ -1,0 +1,90 @@
+parameters:
+  username:
+    type: gpfs_user
+  custom_image:
+    type: string
+  port:
+    type: string
+  nfssourceip:
+    type: string
+  nfssourcepath:
+    type: string
+  nfsmountpath:
+    type: string
+  flavor:
+    type: flavor_list
+  envkey: 
+    type: string
+  envvalue:
+    type: string
+  command:
+    type: string
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+ name: name
+ namespace: namespace
+spec:
+ replicas: 1
+ selector:
+  "app": "myapp"
+ template:
+  metadata:
+   name: name
+   namespace: namespace
+   labels:
+    "app": "myapp"
+  spec:
+   containers:
+   - name: myweb
+     image: {{ custom_image }}
+     
+     {%- if command %}
+     command: ["/bin/sh"]
+     args: ["-c", "{{command}}"]
+
+     {%- endif %}
+     
+     {%- if environment %}
+     env:
+     - name: {{ environment[0]['key'] }}
+       value: {{ environment[0]['value'] }}
+     {%- endif %}
+     ports:
+     - containerPort: {{port}}
+       name: web
+     {%- if nfsmountpath and nfssourceip and nfssourcepath %}
+     volumeMounts:
+        - mountPath: {{nfsmountpath}}
+          name: nfs
+          readOnly: false
+     {%- endif %}
+     resources: {{ flavor }}
+   {%- if nfsmountpath and nfssourceip and nfssourcepath %}
+   volumes:
+     - name: nfs
+       nfs:
+         server: {{nfssourceip}}
+         path: {{nfssourcepath}}
+   {%- endif %}
+{%- if service %}
+---
+{% endif %}
+{%- for svc in service -%}
+apiVersion: v1
+kind: Service
+metadata:
+ name: name
+ namespace: namespace
+spec:
+ type: NodePort
+ ports:
+ - port: {{ svc['port'] }}
+   targetPort: {{ svc['port'] }}
+   protocol: TCP
+   name: {{svc['name']}}
+ selector:
+  'app': 'myapp'
+---
+{% endfor %}

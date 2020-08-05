@@ -1,0 +1,12 @@
+--- 
+  command: "test"
+  service: 
+    - name: test
+      port: 80
+    - name: test2
+      port: 88
+  environment:
+    - key: test2
+      value: test2
+  custom_image: "nginx:latest"
+  flavor: "{{ flavor }}"
